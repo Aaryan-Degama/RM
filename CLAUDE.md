@@ -23,5 +23,5 @@ Neither draft is a spec. Judge ideas on evidence from the papers, and correct er
 ## Writing rules
 - Quote numbers only from papers, and name the source. Label each claim as verified, inferred, or reported secondhand.
 - Make no performance predictions.
-- Follow the strict ≤ t temporal protocol. Report any LLM trained on post-`t` data as a contaminated oracle.
+- Follow the strict $\le t$ temporal protocol. Report any LLM trained on post-$t$ data as a contaminated oracle.
 - Keep sibling-confusion rate and continual-entity non-regression in every evaluation.

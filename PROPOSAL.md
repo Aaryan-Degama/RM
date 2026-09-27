@@ -76,7 +76,7 @@ CYCLE replaces TIGER's graph mechanism with cross-year graph contrastive learnin
 
 ### 2.1 Task
 
-Input: a mention `m` with its left and right context, observed in snapshot `t`, and the knowledge base `KB(t)` as it existed at `t`. The goal is to output the entity `e ∈ KB(t)` that `m` refers to. This is the closed-world setting TempEL uses. As an open-world extension, the model may instead answer **NIL**: "a new member of family *R*, not yet in the KB" (evaluation setup in §6.4). An **emerging entity** is one created in the interval `(t−1, t]`. Nothing dated after `t` may be used (§6.3).
+Input: a mention $m$ with its left and right context, observed in snapshot $t$, and the knowledge base $\mathrm{KB}(t)$ as it existed at $t$. The goal is to output the entity $e \in \mathrm{KB}(t)$ that $m$ refers to. This is the closed-world setting TempEL uses. As an open-world extension, the model may instead answer **NIL**: "a new member of family *R*, not yet in the KB" (evaluation setup in §6.4). An **emerging entity** is one created in the interval $(t-1, t]$. Nothing dated after $t$ may be used (§6.3).
 
 ### 2.2 Three populations with different failure modes
 
@@ -105,7 +105,7 @@ Input: a mention `m` with its left and right context, observed in snapshot `t`, 
 
 | | Contribution | Stands on its own? |
 |---|---|---|
-| **Core** | **Family-relative scoring.** Score a mention against a candidate as *which family?* plus *which member, relative to the family prototype?* (§4.3). The family is found at linking time, from the candidate list and as-of-`t` relations, so it works for entities that have no training data at all. | Yes. This is the paper's main claim and the first thing to build. |
+| **Core** | **Family-relative scoring.** Score a mention against a candidate as *which family?* plus *which member, relative to the family prototype?* (§4.3). The family is found at linking time, from the candidate list and as-of-$t$ relations, so it works for entities that have no training data at all. | Yes. This is the paper's main claim and the first thing to build. |
 | Ext. 1 | **Residual typing**: added facts (the same entity, updated) vs changed values (a sibling) (§3.2) | Needs the core |
 | Ext. 2 | **Per-family "not in the knowledge base" answer**: "new member of family *R*" (§6.4) | Needs the core and Ext. 1 |
 | Ext. 3 | **Routing** novel entities (loose or no family) to a RAED-style knowledge branch | Needs the core's family tightness |
@@ -131,22 +131,22 @@ The retrieved candidates share little with each other (e.g. "coronavirus", "SARS
 
 ### 3.2 The decision rule, made precise
 
-Let `ρ` be the **shared share**: how much of the mention's representation the family prototype explains. Let `r` be the **residual** left after removing the family subspace. Compare the mention's residual with the residual of each family member:
+Let $\rho$ be the **shared share**: how much of the mention's representation the family prototype explains. Let $r$ be the **residual** left after removing the family subspace. Compare the mention's residual with the residual of each family member:
 
 | Observation | Interpretation | Action |
 |---|---|---|
 | Residual is **additive**: the same slots have the **same values**, and new facts are only appended | Same entity, updated. TempEL finding F4: continual changes accumulate. | Link to that existing entity (P1) |
-| Residual is **substitutive**: the same slots have **different values** (year, host, teams, winner) | **Sibling**, a different member of the family | Link to the sibling whose residual matches, if it is in `KB(t)`. Otherwise answer NIL, "new member of family *R*" (P2) |
-| `ρ` is low for every candidate family, or the family is loose | The concept is not explained by any known family | Route to the knowledge branch (P3) |
+| Residual is **substitutive**: the same slots have **different values** (year, host, teams, winner) | **Sibling**, a different member of the family | Link to the sibling whose residual matches, if it is in $\mathrm{KB}(t)$. Otherwise answer NIL, "new member of family *R*" (P2) |
+| $\rho$ is low for every candidate family, or the family is loose | The concept is not explained by any known family | Route to the knowledge branch (P3) |
 
-**How "added vs changed" is measured.** Embeddings have no slots like "year" or "host", so the test runs on **structured facts as of `t`**, not on vectors:
+**How "added vs changed" is measured.** Embeddings have no slots like "year" or "host", so the test runs on **structured facts as of $t$**, not on vectors:
 
-1. **Slot comparison (primary).** For the candidate and each family member, take the Wikidata statements and infobox fields as they stood at `t`: property → value, e.g. `point in time`, `country`, `winner`, `participating team`, `edition number`, `follows / followed by`.
+1. **Slot comparison (primary).** For the candidate and each family member, take the Wikidata statements and infobox fields as they stood at $t$: property → value, e.g. `point in time`, `country`, `winner`, `participating team`, `edition number`, `follows / followed by`.
    - Same property, **different value** (2026 vs 2022, United States vs Qatar) → **substitutive** → sibling.
    - Existing values **unchanged**, only **new properties or values appended** → **additive** → same entity.
-   - The share of matching (property, value) pairs gives a structured version of the shared share `ρ`.
-2. **Text diff (fallback).** For entities with few statements, which is common for stubs, compare the as-of-`t` description with the member's description. Replaced spans (numbers, years, names in the same sentence position) count as substitutive, and appended sentences count as additive. This follows TempEL finding F4.
-3. **Embedding residual (tie-break only).** The vector residual `r` is used only when 1 and 2 cannot decide.
+   - The share of matching (property, value) pairs gives a structured version of the shared share $\rho$.
+2. **Text diff (fallback).** For entities with few statements, which is common for stubs, compare the as-of-$t$ description with the member's description. Replaced spans (numbers, years, names in the same sentence position) count as substitutive, and appended sentences count as additive. This follows TempEL finding F4.
+3. **Embedding residual (tie-break only).** The vector residual $r$ is used only when 1 and 2 cannot decide.
 
 The typing is fixed rules (no learning), so it adds no training data needs and can be audited by hand.
 
@@ -157,7 +157,7 @@ Why keep the additive-versus-substitutive test: it comes from the earlier explan
 | Kept from | Idea |
 |---|---|
 | Both | Family/prototype, then residual, then routing between a discrimination route and a knowledge (RAED) route |
-| `MYexplaination.md` | Hierarchical families (Football → FIFA World Cup); the shared-share `ρ`; additive vs substitutive residual (same entity vs sibling) |
+| `MYexplaination.md` | Hierarchical families (Football → FIFA World Cup); the shared-share $\rho$; additive vs substitutive residual (same entity vs sibling) |
 | Ideation doc | Within-family whitening; shrinkage toward the prototype when evidence is thin; weighting evidence by how unusual it is for the family; NIL thresholds calibrated per family; the evaluation and falsification plan |
 
 ### 3.4 How this differs from the nearest prior work
@@ -166,10 +166,10 @@ Why keep the additive-versus-substitutive test: it comes from the earlier explan
 |---|---|---|
 | **Hard-negative mining** | Trains with difficult negatives | We use siblings as negatives too (§4.4), but only as a training aid. The claim is about the *scoring function*: family-relative scoring at linking time. We report "sibling negatives only" as a control. |
 | **Embedding whitening / LDA** | Removes directions shared across a global dataset or across known classes | Our "classes" are families found **at linking time, per mention**, including for entities with **zero training examples**. We report "whitening only on a frozen BLINK" as a control. |
-| **TIGER / CYCLE** | Graph losses shape a global embedding space during training | They *smooth* an entity toward its graph neighbours. We use the same neighbours as a **contrast** at linking time. The post-2019 structure graph gives newborns no edges; our family graph is as of `t`. |
+| **TIGER / CYCLE** | Graph losses shape a global embedding space during training | They *smooth* an entity toward its graph neighbours. We use the same neighbours as a **contrast** at linking time. The post-2019 structure graph gives newborns no edges; our family graph is as of $t$. |
 | **RAED** | Generates a description from retrieved passages, then picks by cosine | We use it only on the novel route, and we score its output relative to the family, not by raw cosine. |
 | **EDIN** | Finds unknown entities by *clustering* similar mentions | Clustering by similarity is exactly what merges siblings. We ask the opposite question: what separates a new entity from the entities it most resembles? |
-| **STAMO** | Learns linking features for out-of-KB entities from a few labelled documents | It needs labelled documents per entity and has no time bound. Our family statistics come from `KB(t)` with no labels. |
+| **STAMO** | Learns linking features for out-of-KB entities from a few labelled documents | It needs labelled documents per entity and has no time bound. Our family statistics come from $\mathrm{KB}(t)$ with no labels. |
 | **BLINKout** | A learned global "not in the knowledge base" entity | Its threshold is global. Ours is **per family**, because similarity scores are not comparable between dense and sparse families. |
 | **DELICATE** | Re-ranks with type and temporal-plausibility features | It uses type information as a feature. It has no family-relative representation and no treatment of low-evidence newborns. |
 
@@ -211,53 +211,63 @@ flowchart TD
 
 | # | Component | Input → output | Design choice and reason |
 |---|---|---|---|
-| ① | **Encoder backbone** | text → `f(m)`, `g(e)` | Reuse a TIGER-trained bi-encoder. Its graph-shaped space is good for P1. Keeping the mention encoder unchanged means any gains can be attributed to steps ③–⑦. |
-| ② | **Candidate retrieval** | `f(m)` → top-K from `KB(t)` | Dense retrieval plus a BM25 leg. Lexical retrieval needs no training, is free of temporal leakage when its IDF is computed on the as-of corpus, and catches surface cues such as years and edition numbers. |
-| ③ | **Family induction** (the graph-based part) | candidates + as-of-`t` graph → family `R`, prototype `μ_R`, scatter `Σ_R`, tightness | The top-K list already approximates the family: a query for the 2026 edition returns 2022 and 2018. Sharpen it with typed relations valid at `t` (instance-of, part-of-series, follows/followed-by), categories, and title patterns with years and ordinals stripped. Build it as a hierarchy (Football → FIFA World Cup). **Unlike TIGER, the graph is used to find siblings to contrast against, not to average with.** |
+| ① | **Encoder backbone** | text → $f(m)$, $g(e)$ | Reuse a TIGER-trained bi-encoder. Its graph-shaped space is good for P1. Keeping the mention encoder unchanged means any gains can be attributed to steps ③–⑦. |
+| ② | **Candidate retrieval** | $f(m)$ → top-K from $\mathrm{KB}(t)$ | Dense retrieval plus a BM25 leg. Lexical retrieval needs no training, is free of temporal leakage when its IDF is computed on the as-of corpus, and catches surface cues such as years and edition numbers. |
+| ③ | **Family induction** (the graph-based part) | candidates + as-of-$t$ graph → family $R$, prototype $\mu_R$, scatter $\Sigma_R$, tightness | The top-K list already approximates the family: a query for the 2026 edition returns 2022 and 2018. Sharpen it with typed relations valid at $t$ (instance-of, part-of-series, follows/followed-by), categories, and title patterns with years and ordinals stripped. Build it as a hierarchy (Football → FIFA World Cup). **Unlike TIGER, the graph is used to find siblings to contrast against, not to average with.** |
 | ④ | **Router** | class fit, tightness, margins → one route | P1: one candidate matches directly with a clear margin. P2: the family is tight. P3: no family explains the mention. The routing decision uses the same quantities as the scoring function, so it is not a separate module bolted on. |
-| ⑤ | **Residual analyser** | `μ_R`, `Σ_R`, evidence ≤ `t` → residual estimate `ê` | Remove the family subspace, compute `ρ` and the residual, and classify the residual as additive or substitutive using as-of-`t` slot comparison (§3.2). Weight evidence by how *unusual* it is for the family, not by how relevant it is to the mention. Relevance-ranked evidence mostly returns content the siblings share. Shrink toward the prototype when evidence is thin. |
-| ⑥ | **Knowledge branch** | passages ≤ `t` → generated description → vector | The RAED mechanism, used only on P3. Its output is scored by the residual scorer in ⑦, not by raw cosine, which fixes RAED's weakness with siblings. It uses a temporally sound index (§6.3). |
-| ⑦ | **Scoring and decision** | `f(m)`, `ê`, `μ_R`, `Σ_R` → link / NIL / novel | Two terms: *which family?* and *which member?* (§4.3). The NIL threshold is calibrated **per family**, because raw similarity cannot be compared across dense and sparse families. |
+| ⑤ | **Residual analyser** | $\mu_R$, $\Sigma_R$, evidence $\le t$ → residual estimate $\hat{e}$ | Remove the family subspace, compute $\rho$ and the residual, and classify the residual as additive or substitutive using as-of-$t$ slot comparison (§3.2). Weight evidence by how *unusual* it is for the family, not by how relevant it is to the mention. Relevance-ranked evidence mostly returns content the siblings share. Shrink toward the prototype when evidence is thin. |
+| ⑥ | **Knowledge branch** | passages $\le t$ → generated description → vector | The RAED mechanism, used only on P3. Its output is scored by the residual scorer in ⑦, not by raw cosine, which fixes RAED's weakness with siblings. It uses a temporally sound index (§6.3). |
+| ⑦ | **Scoring and decision** | $f(m)$, $\hat{e}$, $\mu_R$, $\Sigma_R$ → link / NIL / novel | Two terms: *which family?* and *which member?* (§4.3). The NIL threshold is calibrated **per family**, because raw similarity cannot be compared across dense and sparse families. |
 
 **Core vs extensions (§3.0).** The core is ① + ② + ③ + the two-term score in ⑦. Residual typing in ⑤ is Ext. 1, the NIL answer in ⑦ is Ext. 2, and the router ④ with the knowledge branch ⑥ is Ext. 3. Build and evaluate the core first.
 
 ### 4.3 Formulation
 
-**Family statistics** (over the family members `R(e,t)` in `KB(t)`):
-```
-μ_R = mean of g(d_e') for e' ∈ R          Σ_R = within-family scatter
-g(d_e) = μ_R + r_e                        r_e = the individuating residual
-ρ    = share of ‖g(d_e)‖² explained by the family subspace
-```
+**Family statistics** (over the family members $R(e,t)$ in $\mathrm{KB}(t)$):
+
+$$
+\begin{aligned}
+\mu_R &= \text{mean of } g(d_{e'}) \text{ for } e' \in R, \qquad \Sigma_R = \text{within-family scatter} \\
+g(d_e) &= \mu_R + r_e, \qquad r_e = \text{the individuating residual} \\
+\rho &= \text{share of } \lVert g(d_e) \rVert^2 \text{ explained by the family subspace}
+\end{aligned}
+$$
 
 **Evidence weighting and shrinkage** (entity representation at birth, from few observations):
-```
-w(v)  ∝ exp( ‖P_R ψ(v)‖ / τ ),   P_R = Σ_R^(-1/2) (I − μ̂_R μ̂_Rᵀ)     # how unusual evidence v is for the family
-n_eff = Σ_v w(v)
-ê     = μ_R + ( n_eff / (n_eff + λ) ) · r̂_e                          # thin evidence ⇒ stay near the prototype
-```
+
+$$
+\begin{aligned}
+w(v) &\propto \exp\left(\frac{\lVert P_R\, \psi(v) \rVert}{\tau}\right), \qquad P_R = \Sigma_R^{-1/2}\left(I - \hat{\mu}_R \hat{\mu}_R^{\top}\right) &&\text{how unusual evidence } v \text{ is for the family} \\
+n_{\text{eff}} &= \sum_v w(v) \\
+\hat{e} &= \mu_R + \frac{n_{\text{eff}}}{n_{\text{eff}} + \lambda}\, \hat{r}_e &&\text{thin evidence} \Rightarrow \text{stay near the prototype}
+\end{aligned}
+$$
 
 **Factored score:**
-```
-s(m, e) = β · ⟨f(m), μ̂_R⟩                              # which family?
-        + (f(m) − μ_R)ᵀ Σ_R⁻¹ (ê − μ_R)                 # which member?
-```
+
+$$
+s(m, e) = \underbrace{\beta \cdot \langle f(m), \hat{\mu}_R \rangle}_{\text{which family?}}
+        + \underbrace{\left(f(m) - \mu_R\right)^{\top} \Sigma_R^{-1} \left(\hat{e} - \mu_R\right)}_{\text{which member?}}
+$$
 
 **Decision:**
-```
-link   if the best within-family margin > q_R(α)            (per-family calibrated)
-NIL    if the family fits but no member clears q_R(α)     → new member of R
-novel  if no family fits                                   → knowledge branch
-```
 
-**The baseline is nested inside the model.** Setting `Σ_R = I`, `μ_R = 0` and `λ = 0` gives back the plain bi-encoder dot product. Each ablation removes exactly one assumption. The shrinkage factor `n_eff/(n_eff+λ)` also predicts the shape of the accuracy-versus-evidence curve, which can be checked.
+$$
+\begin{cases}
+\text{link} & \text{if the best within-family margin} > q_R(\alpha) \quad \text{(per-family calibrated)} \\
+\text{NIL} \rightarrow \text{new member of } R & \text{if the family fits but no member clears } q_R(\alpha) \\
+\text{novel} \rightarrow \text{knowledge branch} & \text{if no family fits}
+\end{cases}
+$$
+
+**The baseline is nested inside the model.** Setting $\Sigma_R = I$, $\mu_R = 0$ and $\lambda = 0$ gives back the plain bi-encoder dot product. Each ablation removes exactly one assumption. The shrinkage factor $\frac{n_{\text{eff}}}{n_{\text{eff}} + \lambda}$ also predicts the shape of the accuracy-versus-evidence curve, which can be checked.
 
 ### 4.4 Training
 
 - **Backbone:** a TIGER-trained bi-encoder, used as released.
 - **Fine-tuning:** use **family-member (sibling) hard negatives** instead of random in-batch negatives. Random in-batch negatives almost never include the gold entity's sibling, so the model never learns the axis that matters for P2.
-- **Hyper-parameters:** tune `β`, `λ`, `τ` and the per-family thresholds `q_R` on validation.
-- **Small training set:** only 1,764 new-entity training mentions per snapshot. That is enough, because the family statistics come from `KB(t)` itself, not from labelled mentions.
+- **Hyper-parameters:** tune $\beta$, $\lambda$, $\tau$ and the per-family thresholds $q_R$ on validation.
+- **Small training set:** only 1,764 new-entity training mentions per snapshot. That is enough, because the family statistics come from $\mathrm{KB}(t)$ itself, not from labelled mentions.
 
 ---
 
@@ -269,13 +279,13 @@ novel  if no family fits                                   → knowledge branch
 | **F2** ~68% recurring events, ~22% page extracts | Siblings are nearly identical in text, and one dot product is dominated by family content | ③ family induction + ⑤ **substitutive residual → sibling** + ⑦ within-family term |
 | **F3** COVID-19 (2021): 24% of entities, 30% of mentions, extra ~14-point penalty | The knowledge is absent from both the encoder and the stub | ④ router → ⑥ **knowledge branch** (RAED-style) |
 | **F4** Continual changes accumulate | Drift can be mistaken for a new entity | ⑤ **additive residual → same entity** → link (P1) |
-| **F5** Top-64 candidates become more similar over time, and the KB keeps growing | A fixed global space gets crowded | ⑦ **within-family whitening** `Σ_R⁻¹` removes directions the family shares |
+| **F5** Top-64 candidates become more similar over time, and the KB keeps growing | A fixed global space gets crowded | ⑦ **within-family whitening** $\Sigma_R^{-1}$ removes directions the family shares |
 | **F6** Mention context drifts more than entity descriptions | Almost all temporal EL work acts on the entity side | Partly: ② BM25 leg. **Not a main target and listed as a limitation.** |
 | **F7** New entities and COVID respond to different interventions | One mechanism is applied to every mention | ④ **routing** between ⑤ and ⑥ |
-| Only 1,764 new-entity training mentions per snapshot | Cannot learn new entities from labels | Statistics come from `KB(t)`; shrinkage is built for few samples |
+| Only 1,764 new-entity training mentions per snapshot | Cannot learn new entities from labels | Statistics come from $\mathrm{KB}(t)$; shrinkage is built for few samples |
 | Closed-world benchmark, no NIL | Forced to pick a wrong entity | ⑦ **per-family calibrated NIL** ("new member of family R") |
 | *(TIGER)* Post-2019 entities have no structure-graph edges, and the kNN graph smooths toward siblings | The graph signal is missing, or points the wrong way | ③ **as-of-t** family graph used for **contrast, not smoothing** |
-| *(RAED)* Cosine against sibling descriptions; 2023 index | A faithful description is not a separating one; information leaks | ⑥ output scored by the residual scorer; index restricted to ≤ `t` |
+| *(RAED)* Cosine against sibling descriptions; 2023 index | A faithful description is not a separating one; information leaks | ⑥ output scored by the residual scorer; index restricted to $\le t$ |
 | *(All)* Tuned for aggregate accuracy only | Cannot tell which failure mode dominates | §6.1 diagnosis first, and sibling-confusion rate as a primary metric |
 
 ---
@@ -298,23 +308,23 @@ Reproduce BLINK/TempEL and TIGER, then label every emerging-entity error:
 ### 6.2 Metrics, slices and baselines
 
 - **Metrics:** accuracy@64 (comparable with TempEL and RAED); R@1 and MRR (comparable with TIGER and CYCLE, and where discrimination shows); **sibling-confusion rate**, which tests the mechanism; NIL precision/recall/F1; ECE and risk–coverage.
-- **Slices:** new vs continual; family density; derivative vs novel; stub vs developed description; graph degree at `t`; train/test gap of 0–3 years; the 2021 COVID subset reported separately.
+- **Slices:** new vs continual; family density; derivative vs novel; stub vs developed description; graph degree at $t$; train/test gap of 0–3 years; the 2021 COVID subset reported separately.
 - **Baselines, rerun on the same splits:** BLINK/TempEL, SpEL, TIGER, CYCLE, RAED descriptions placed in the TempEL index, and BLINKout for NIL.
 - **Controls:** *whitening only* on a frozen BLINK; *sibling hard negatives only*.
-- **Ablations:** remove whitening; remove residual typing; use relevance-ranked instead of anomaly-ranked evidence; `λ = 0`; remove routing (always ⑤ or always ⑥); oracle family.
+- **Ablations:** remove whitening; remove residual typing; use relevance-ranked instead of anomaly-ranked evidence; $\lambda = 0$; remove routing (always ⑤ or always ⑥); oracle family.
 
 ### 6.3 Strict temporal protocol
 
-Everything used at test time must be dated **≤ t**: the KB inventory and descriptions, graph edges, passages, aliases and redirects. **Any LLM whose pretraining data extends past `t` is reported only as a contaminated oracle.** Declare whether evaluation is inductive or transductive. Build the passage index per year from the same revision history TempEL uses.
+Everything used at test time must be dated **$\le t$**: the KB inventory and descriptions, graph edges, passages, aliases and redirects. **Any LLM whose pretraining data extends past $t$ is reported only as a contaminated oracle.** Declare whether evaluation is inductive or transductive. Build the passage index per year from the same revision history TempEL uses.
 
 ---
 
 ### 6.4 Making "new member, not in the knowledge base" testable
 
-TempEL is closed-world: the gold entity is always in `KB(t)`, so the answer "new member of family *R*" can never be correct on it. To evaluate Ext. 2 we add an open-world setting, built the way BLINKout builds its evaluation (by removing entities from the knowledge base):
+TempEL is closed-world: the gold entity is always in $\mathrm{KB}(t)$, so the answer "new member of family *R*" can never be correct on it. To evaluate Ext. 2 we add an open-world setting, built the way BLINKout builds its evaluation (by removing entities from the knowledge base):
 
-- **Hidden-gold mentions.** For each new-entity test mention, remove its gold entity from `KB(t)`. The correct answer becomes NIL, *with the family label kept* (e.g. "new member of FIFA World Cup"). Siblings stay in the knowledge base, so this is the hard case: a very similar entity is always available as a wrong answer.
-- **Kept-gold mentions.** The same mentions with the gold left in `KB(t)`, and correct answer = the gold. This checks that the model does not over-predict NIL.
+- **Hidden-gold mentions.** For each new-entity test mention, remove its gold entity from $\mathrm{KB}(t)$. The correct answer becomes NIL, *with the family label kept* (e.g. "new member of FIFA World Cup"). Siblings stay in the knowledge base, so this is the hard case: a very similar entity is always available as a wrong answer.
+- **Kept-gold mentions.** The same mentions with the gold left in $\mathrm{KB}(t)$, and correct answer = the gold. This checks that the model does not over-predict NIL.
 - **Continual controls.** Continual-entity mentions with the gold kept. Predicting NIL here is always wrong.
 - **Metrics.** NIL precision / recall / F1; accuracy of the family label on NIL predictions; AUROC for in-KB vs NIL. Report all of these separately for kept-gold and hidden-gold mentions.
 - **Baselines.** BLINKout's global NIL threshold, and a global threshold on TIGER scores. The claim to test is that **per-family** thresholds beat a single global one.
@@ -326,9 +336,9 @@ Leave-one-out removal is simpler than TempEL-Dx's red-link NIL items, and it can
 - **Errors turn out to be retrieval-bound** (the gold entity is usually not in the top-64). Then representation work is beside the point; move to better retrieval or to RAED-style bypass of the inventory.
 - **Errors are scattered, not within families.** Then there is no residual structure to exploit.
 - **Anomaly-based evidence selection performs the same as relevance ranking.** Then what remains is hard-negative mining with extra steps.
-- **The tuned `λ` collapses to 0 or ∞.** Then the shrinkage story collapses too.
+- **The tuned $\lambda$ collapses to $0$ or $\infty$.** Then the shrinkage story collapses too.
 - **Wrong family induced**, so whitening happens in the wrong subspace. This should show up as a bimodal error distribution.
-- **Small families make `Σ_R` ill-conditioned.** Pool the covariance across families and report condition numbers.
+- **Small families make $\Sigma_R$ ill-conditioned.** Pool the covariance across families and report condition numbers.
 - **Continual entities regress.** Report P1 results in every table.
 - **Fallback paper, useful in every case:** a temporally sound index and protocol, a diagnosis of error causes for BLINK, TIGER, CYCLE and RAED, and a re-evaluation of prior gains (see `TempEL-Dx`).
 

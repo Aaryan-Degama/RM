@@ -61,7 +61,7 @@ The phrase "emerging entity" hides at least four different things, and they fail
 | | Failure mode | What it means operationally | Who addresses it |
 |---|---|---|---|
 | A | Representation | Gold is in the candidate pool but its vector is not individuating enough to win. | TIGER, CYCLE (globally, at training time) |
-| B | Candidate retrieval | Gold is not in the top-K at all. Directly measurable as 1 − recall@64. | BLINK-style dense retrieval; RAED bypasses the inventory |
+| B | Candidate retrieval | Gold is not in the top-K at all. Directly measurable as $1 - \text{recall@}64$. | BLINK-style dense retrieval; RAED bypasses the inventory |
 | C | Temporal drift | Mention-context distribution at test time differs from training. Distinct from A. | Largely unaddressed |
 | D | Knowledge availability | The concept is absent from pretraining and from the KB text. No amount of representation shaping helps. | RAED, STAMO |
 | E | Ambiguity | Two or more KB entities are genuinely compatible with the context. The evidence underdetermines the answer. | Classic EL; not separated from A in temporal work |
@@ -147,7 +147,7 @@ Treat it as an analogy about estimator structure, not architecture. Four things 
 
 **Does not transfer**
 
-- Faces have a stable, physically-grounded identity signal with bounded within-identity variation. Entity descriptions do not: the same entity's description at *t* and *t+3* can differ arbitrarily, and two distinct entities can have near-identical descriptions. The signal-to-noise structure is inverted.
+- Faces have a stable, physically-grounded identity signal with bounded within-identity variation. Entity descriptions do not: the same entity's description at $t$ and $t+3$ can differ arbitrarily, and two distinct entities can have near-identical descriptions. The signal-to-noise structure is inverted.
 - A photo gallery is a closed set of tens to hundreds of identities per user. A Wikipedia KB is open, adversarially crowded, and has millions of entries. Clustering heuristics that are safe at gallery scale are not safe here — and this is the main reason a naive "growing entity memory" will produce wrong merges.
 
 ---
@@ -195,7 +195,7 @@ Labelled by confidence. "Verified" means read from the primary paper or its abst
 
 The three claims packed into that, each separable and each testable:
 
-1. **Structural.** The link decision factorises as `p(e | m) = p(R | m) · p(e | R, m)`. Current bi-encoders compute a single dot product that is dominated by the first factor, because class-level semantics account for most of the variance in description embeddings. Emerging-entity errors live almost entirely in the second factor.
+1. **Structural.** The link decision factorises as $p(e \mid m) = p(R \mid m) \cdot p(e \mid R, m)$. Current bi-encoders compute a single dot product that is dominated by the first factor, because class-level semantics account for most of the variance in description embeddings. Emerging-entity errors live almost entirely in the second factor.
 2. **Estimation.** Building an entity's representation at birth is a low-sample estimation problem. The right estimator shrinks toward the class prototype in proportion to how little individuating evidence exists — not a heuristic, a bias–variance tradeoff with a closed form.
 3. **Selection, not accumulation.** Evidence should be weighted by how much it *separates* the entity from its reference class, not by how relevant it is to the mention. Relevance-ranked retrieval systematically returns class-shared content, because that is what the entity and its siblings have most of.
 
@@ -209,18 +209,18 @@ Working name: **NASCENT** (neighbourhood-anchored shrinkage for contrastive enti
 
 | | Stage | In → out | Why, and which failure mode it addresses |
 |---|---|---|---|
-| 1 | Input | Mention span, left/right context, snapshot time `t` → typed query | Same as BLINK, plus an explicit timestamp that gates every downstream information source. |
-| 2 | Temporal knowledge at `t` | KB(t) inventory and descriptions, KG edges valid at ≤t, passage index from revisions ≤t, category/type graph at t | Everything the system may see. Defining this is the protocol contribution (§13). |
-| 3 | Mention representation | Context → `f(m)` | Unchanged from BLINK. Deliberately: we want the contribution to be attributable to the entity side and the scoring function. |
-| 4 | Candidate discovery | `f(m)` → top-K from KB(t) | Addresses B. Use the existing bi-encoder retriever, plus a lexical (BM25) leg — dense retrievers are documented to handle entity-centric queries poorly, and emerging entities are the extreme case. |
-| 5 | Reference-class induction | Top-K + KB(t) → class `R`, prototype `μ_R`, scatter `Σ_R` | The pivot. The candidate set already *is* approximately the reference class — the top-K for a mention of the 2021 edition contains the 2019 and 2020 editions. We are reusing information that is currently thrown away. Sharpen with categories/types available at t. |
-| 6 | Emerging-entity detection | `p(R\|m)`, within-class margins → one of three routes | Addresses F, and separates it from E. High class fit + no member with residual support → new member of a known class. Two members with comparable support → genuine ambiguity. No class fits → novel-knowledge case, route to stage 7b. |
-| 7a | Residual construction, crowded case | Evidence ≤t, weighted by class-anomaly → residual `r̂_e` | Addresses A for population (b). Evidence is scored by how far it projects *outside* the class subspace, not by mention relevance. |
-| 7b | Description synthesis, novel-knowledge case | Retrieved passages ≤t → grounded description | Addresses D. This is the RAED mechanism, invoked only where the diagnosis says it applies. Not a bolted-on module — the routing decision at stage 6 is what selects it, and that decision falls out of the same factorisation. |
-| 8 | Evidence aggregation | `μ_R`, `r̂_e`, effective count `n_eff` → `ê_t` | Shrinkage, not averaging. With one stub, the estimate is nearly the class prototype — which is the *safe* answer, and correctly expresses "I know what kind of thing this is and not which one." |
-| 9 | Linking decision | `f(m)`, `ê_t`, `μ_R`, `Σ_R` → score | Two terms: class fit, and a within-class whitened term. The second is where emerging-entity accuracy is won or lost. |
+| 1 | Input | Mention span, left/right context, snapshot time $t$ → typed query | Same as BLINK, plus an explicit timestamp that gates every downstream information source. |
+| 2 | Temporal knowledge at $t$ | $\mathrm{KB}(t)$ inventory and descriptions, KG edges valid at $\le t$, passage index from revisions $\le t$, category/type graph at $t$ | Everything the system may see. Defining this is the protocol contribution (§13). |
+| 3 | Mention representation | Context → $f(m)$ | Unchanged from BLINK. Deliberately: we want the contribution to be attributable to the entity side and the scoring function. |
+| 4 | Candidate discovery | $f(m)$ → top-K from $\mathrm{KB}(t)$ | Addresses B. Use the existing bi-encoder retriever, plus a lexical (BM25) leg — dense retrievers are documented to handle entity-centric queries poorly, and emerging entities are the extreme case. |
+| 5 | Reference-class induction | Top-K + $\mathrm{KB}(t)$ → class $R$, prototype $\mu_R$, scatter $\Sigma_R$ | The pivot. The candidate set already *is* approximately the reference class — the top-K for a mention of the 2021 edition contains the 2019 and 2020 editions. We are reusing information that is currently thrown away. Sharpen with categories/types available at t. |
+| 6 | Emerging-entity detection | $p(R \mid m)$, within-class margins → one of three routes | Addresses F, and separates it from E. High class fit + no member with residual support → new member of a known class. Two members with comparable support → genuine ambiguity. No class fits → novel-knowledge case, route to stage 7b. |
+| 7a | Residual construction, crowded case | Evidence $\le t$, weighted by class-anomaly → residual $\hat{r}_e$ | Addresses A for population (b). Evidence is scored by how far it projects *outside* the class subspace, not by mention relevance. |
+| 7b | Description synthesis, novel-knowledge case | Retrieved passages $\le t$ → grounded description | Addresses D. This is the RAED mechanism, invoked only where the diagnosis says it applies. Not a bolted-on module — the routing decision at stage 6 is what selects it, and that decision falls out of the same factorisation. |
+| 8 | Evidence aggregation | $\mu_R$, $\hat{r}_e$, effective count $n_{\text{eff}}$ → $\hat{e}_t$ | Shrinkage, not averaging. With one stub, the estimate is nearly the class prototype — which is the *safe* answer, and correctly expresses "I know what kind of thing this is and not which one." |
+| 9 | Linking decision | $f(m)$, $\hat{e}_t$, $\mu_R$, $\Sigma_R$ → score | Two terms: class fit, and a within-class whitened term. The second is where emerging-entity accuracy is won or lost. |
 | 10 | Rejection | Per-class calibrated margin → link / abstain / NIL | Addresses F. Crucially *per class*: absolute similarity is not comparable across classes of different density, which is why global thresholds fail. |
-| 11 | Update | New confirmed mention → `n_eff` ↑, shrinkage ↓ | The maturation mechanism, with a closed form rather than a clustering heuristic — and therefore with a quantitative prediction attached (§12). |
+| 11 | Update | New confirmed mention → $n_{\text{eff}}$ ↑, shrinkage ↓ | The maturation mechanism, with a closed form rather than a clustering heuristic — and therefore with a quantitative prediction attached (§12). |
 
 ---
 
@@ -238,9 +238,9 @@ Not because it has more components. Because it operates on the axis TIGER cannot
 
 1. A large share of emerging-entity errors are within-reference-class confusions.
 2. The gold entity is usually present in the top-K (otherwise this is a retrieval problem and representation work is beside the point).
-3. Reference classes are inducible at `t` without leakage.
+3. Reference classes are inducible at $t$ without leakage.
 4. Within-class covariance is estimable — classes must be large enough, or covariance must be pooled across classes.
-5. Evidence carrying residual information exists at ≤`t` for a non-trivial fraction of entities.
+5. Evidence carrying residual information exists at $\le t$ for a non-trivial fraction of entities.
 
 ---
 
@@ -261,7 +261,7 @@ Not because it has more components. Because it operates on the axis TIGER cannot
 | EL agents | LLM reasoning over retrieved text | Tool-based | Reason over candidates | No | No | Yes | LLM pretraining postdates the test snapshot — contaminated on TempEL |
 | Lifelong / continual EL | Pruned-parameter models per domain | Inventory | Sequential domain learning | Sequence-level | No | No | Parameter-level forgetting, not entity birth |
 | DELICATE | Bi-encoder + GBT re-ranker | Dense top-K | Type + temporal plausibility features | Yes | Wikidata features | No | Symbolic feature re-ranking; no estimator for an under-observed entity |
-| **Proposed** | **Class prototype + shrunk individuating residual** | **Dense + lexical, reused as the class** | **Factored decision; class-anomalous evidence; per-class calibration** | **Strict ≤t protocol** | **Optional, as class structure** | **Routed, not default** | **Fails entirely if errors are retrieval-bound rather than discrimination-bound** |
+| **Proposed** | **Class prototype + shrunk individuating residual** | **Dense + lexical, reused as the class** | **Factored decision; class-anomalous evidence; per-class calibration** | **Strict $\le t$ protocol** | **Optional, as class structure** | **Routed, not default** | **Fails entirely if errors are retrieval-bound rather than discrimination-bound** |
 
 **What is genuinely new, stated conservatively.** Whitening, shrinkage estimators, hard-negative mining, type-based re-ranking, and retrieval-augmented description generation all exist. The new things are: (i) treating the entity representation at birth as an explicit low-sample estimation problem with a shrinkage estimator whose strength is tied to observed evidence, rather than as a fixed encoding; (ii) selecting evidence by class-anomaly instead of by relevance, with the prediction that these diverge exactly where the problem is hardest; (iii) a per-reference-class calibrated rejection rule that separates "unknown entity" from "known but ambiguous," which a global threshold provably cannot do when class density varies. *If the experiments in §14 show the errors are not within-class confusions, none of this is novel because none of it is relevant.*
 
@@ -271,60 +271,73 @@ Not because it has more components. Because it operates on the axis TIGER cannot
 
 Four representation regimes, in increasing generality:
 
-```
-static:              e = g(d_e)
-temporal:            e_t = g(d_e^t)
-evidence-conditioned: e_t = g(d_e^t, V_t(e))
-induced (ours):      e_t = μ_R(e,t) + λ-weighted residual from class-anomalous evidence
-```
+$$
+\begin{aligned}
+&\text{static:} && e = g(d_e) \\
+&\text{temporal:} && e_t = g(d_e^t) \\
+&\text{evidence-conditioned:} && e_t = g\left(d_e^t, V_t(e)\right) \\
+&\text{induced (ours):} && e_t = \mu_{R(e,t)} + \lambda\text{-weighted residual from class-anomalous evidence}
+\end{aligned}
+$$
 
-**Setup.** KB(t) is the inventory at t; `d_e^t` is e's description at t; `V_t(e)` is all evidence about e timestamped ≤t.
+**Setup.** $\mathrm{KB}(t)$ is the inventory at $t$; $d_e^t$ is $e$'s description at $t$; $V_t(e)$ is all evidence about $e$ timestamped $\le t$.
 
 **1. Reference class and its statistics**
-```
-R(e,t) = top-k nearest entities to e in KB(t) \ {e}
-μ_R    = mean of g(d_e'^t) over e' ∈ R
-Σ_R    = within-class scatter of the same set
-```
+
+$$
+\begin{aligned}
+R(e,t) &= \text{top-}k \text{ nearest entities to } e \text{ in } \mathrm{KB}(t) \setminus \{e\} \\
+\mu_R &= \text{mean of } g(d_{e'}^t) \text{ over } e' \in R \\
+\Sigma_R &= \text{within-class scatter of the same set}
+\end{aligned}
+$$
 
 **2. Decomposition**
-```
-g(d_e^t) = μ_R + r_e          r_e = the individuating residual
-```
+
+$$
+g(d_e^t) = \mu_R + r_e, \qquad r_e = \text{the individuating residual}
+$$
 
 **3. Discriminative evidence weight**
-```
-w(v) ∝ exp( ‖ P_R ψ(v) ‖ / τ )     P_R = Σ_R^(-1/2) (I − μ̂_R μ̂_R^T)
-   an approximation to  log p(v | e) − log p(v | R)
-   i.e. weight evidence by how surprising it is given the class
-```
+
+$$
+w(v) \propto \exp\left(\frac{\lVert P_R\, \psi(v) \rVert}{\tau}\right), \qquad P_R = \Sigma_R^{-1/2}\left(I - \hat{\mu}_R \hat{\mu}_R^{\top}\right)
+$$
+
+- an approximation to $\log p(v \mid e) - \log p(v \mid R)$
+- i.e. weight evidence by how surprising it is given the class
 
 **4. Shrinkage estimator**
-```
-n_eff = Σ_v w(v)
-ê_t   = μ_R + ( n_eff / (n_eff + λ) ) · r̂_e
-   r̂_e = weighted mean residual of the evidence
-   λ tracks within-class variance: high variance → trust the evidence sooner
-```
+
+$$
+n_{\text{eff}} = \sum_v w(v), \qquad \hat{e}_t = \mu_R + \frac{n_{\text{eff}}}{n_{\text{eff}} + \lambda}\, \hat{r}_e
+$$
+
+- $\hat{r}_e$ = weighted mean residual of the evidence
+- $\lambda$ tracks within-class variance: high variance → trust the evidence sooner
 
 **5. Factored score**
-```
-s(m, e) = β · ⟨ f(m), μ̂_R ⟩                          [which class?]
-        + ( f(m) − μ_R )^T Σ_R^(-1) ( ê_t − μ_R )     [which member?]
-```
+
+$$
+s(m, e) = \underbrace{\beta \cdot \langle f(m), \hat{\mu}_R \rangle}_{\text{which class?}}
+        + \underbrace{\left(f(m) - \mu_R\right)^{\top} \Sigma_R^{-1} \left(\hat{e}_t - \mu_R\right)}_{\text{which member?}}
+$$
 
 **6. Open-world rule, calibrated per class**
-```
-link   if  max_{e∈R} within-class margin  >  q_R(α)
-NIL    if  class fit high, no member clears q_R(α)   → new member of a known class
-route  if  no class fits                             → novel-knowledge case
-```
+
+$$
+\begin{cases}
+\text{link} & \text{if } \max_{e \in R} \text{ within-class margin} > q_R(\alpha) \\
+\text{NIL} & \text{if class fit high, no member clears } q_R(\alpha) \rightarrow \text{new member of a known class} \\
+\text{route} & \text{if no class fits} \rightarrow \text{novel-knowledge case}
+\end{cases}
+$$
 
 Two consequences worth putting in the paper.
 
-**The shrinkage factor is the maturation curve.** `n_eff/(n_eff+λ)` gives a parametric prediction for how accuracy should improve as evidence accumulates. That is a falsifiable functional form, not just "more evidence is better." Fit `λ` on validation, check the predicted curve on test.
+**The shrinkage factor is the maturation curve.** $\frac{n_{\text{eff}}}{n_{\text{eff}} + \lambda}$ gives a parametric prediction for how accuracy should improve as evidence accumulates. That is a falsifiable functional form, not just "more evidence is better." Fit $\lambda$ on validation, check the predicted curve on test.
 
-**The second term is where the contribution lives.** A plain dot product is a special case: set `Σ_R = I`, `μ_R = 0`, `λ = 0`. So the baseline is nested inside the model, which makes the ablations clean and makes the claim precise: we are asserting that the restriction the baseline imposes is exactly the one that costs accuracy on emerging entities.
+**The second term is where the contribution lives.** A plain dot product is a special case: set $\Sigma_R = I$, $\mu_R = 0$, $\lambda = 0$. So the baseline is nested inside the model, which makes the ablations clean and makes the claim precise: we are asserting that the restriction the baseline imposes is exactly the one that costs accuracy on emerging entities.
 
 ---
 
@@ -332,28 +345,28 @@ Two consequences worth putting in the paper.
 
 This section is probably worth more than the model. Nobody has done it properly and it is the part a careful reviewer will trust.
 
-**Known at ≤ t−1**
+**Known at $\le t-1$**
 - Model parameters (all training data)
-- KB(t−1) inventory and descriptions as of t−1
-- KG edges with valid-from ≤ t−1
-- Passages from page revisions ≤ t−1
-- Aliases and redirects existing at t−1
+- $\mathrm{KB}(t-1)$ inventory and descriptions as of $t-1$
+- KG edges with valid-from $\le t-1$
+- Passages from page revisions $\le t-1$
+- Aliases and redirects existing at $t-1$
 
-**Known at t**
-- KB(t) inventory; descriptions *as of t*
+**Known at $t$**
+- $\mathrm{KB}(t)$ inventory; descriptions *as of $t$*
 - The mention's own document
-- Other mentions with timestamp ≤ the current one, if the transductive setting is declared
-- Edges and passages with timestamp ≤ t
-- Category / type memberships as of t
+- Other mentions with timestamp $\le$ the current one, if the transductive setting is declared
+- Edges and passages with timestamp $\le t$
+- Category / type memberships as of $t$
 
-**Forbidden (> t)**
+**Forbidden ($> t$)**
 - Any later revision of the entity's own page
 - Later revisions of *other* pages that mention it
-- Edges added after t; aliases created after t
+- Edges added after $t$; aliases created after $t$
 - Later KB states of any kind
-- **Any LLM whose pretraining corpus postdates t**
+- **Any LLM whose pretraining corpus postdates $t$**
 
-**The contamination rule deserves emphasis.** Every current general-purpose LLM has read Wikipedia well past 2022. Running one on TempEL 2020–2022 and reporting a number is measuring memorisation, not linking. If you use an LLM at all, either use one with a verifiable pretraining cutoff before `t`, or report it explicitly as a contaminated oracle upper bound. Say this in the paper — it is a contribution, because a lot of recent EL work quietly violates it.
+**The contamination rule deserves emphasis.** Every current general-purpose LLM has read Wikipedia well past 2022. Running one on TempEL 2020–2022 and reporting a number is measuring memorisation, not linking. If you use an LLM at all, either use one with a verifiable pretraining cutoff before $t$, or report it explicitly as a contaminated oracle upper bound. Say this in the paper — it is a contribution, because a lot of recent EL work quietly violates it.
 
 ### Three protocol decisions you must declare
 
@@ -372,18 +385,18 @@ One week of work, no new model. On the emerging subset, for each error made by a
 - Gold absent from top-64 → **B**, retrieval failure.
 - Gold present; predicted entity is in the gold's reference class → **A/E**, within-class confusion. *This bucket is the hypothesis.*
 - Gold present; predicted entity is unrelated → representation failure of a different kind.
-- Gold's description at `t` is a near-empty stub, or the entity is in the novel-knowledge population → **D**.
+- Gold's description at $t$ is a near-empty stub, or the entity is in the novel-knowledge population → **D**.
 
 If the within-class bucket is small, stop and pivot. This is the cheapest decision point in the whole project and it comes first.
 
 ### 14.2 Evaluation slices
 
 - **Emerging vs continual** — continual non-regression is mandatory, not optional.
-- **Reference-class density** — bucket entities by mean cosine to their top-10 KB(t) neighbours, computed with a frozen t−1 encoder. This is the primary axis and the one the hypothesis makes a directional prediction about.
+- **Reference-class density** — bucket entities by mean cosine to their top-10 $\mathrm{KB}(t)$ neighbours, computed with a frozen $t-1$ encoder. This is the primary axis and the one the hypothesis makes a directional prediction about.
 - **Derivative vs novel-knowledge** — operationalise TempEL's manual categories: does the title contain a year and match an existing series? Is it a substring-extension of an existing title? Cross-check a manual sample.
-- **Description richness** — stub vs developed, by token count at t.
+- **Description richness** — stub vs developed, by token count at $t$.
 - **Evidence count** — for the maturation curve.
-- **Graph degree at t** — to show directly where TIGER's mechanism runs out and yours starts.
+- **Graph degree at $t$** — to show directly where TIGER's mechanism runs out and yours starts.
 - **Temporal distance** — gaps 0–3, forward-only, plus the 2021 COVID subset reported separately.
 
 ### 14.3 Metrics, and why each earns its place
@@ -396,7 +409,7 @@ If the within-class bucket is small, stop and pivot. This is the cheapest decisi
 
 ### 14.4 Baselines you must run yourself
 
-Reproduced, not quoted: BLINK bi-encoder, TempEL's released per-year models, SpEL, TIGER, CYCLE (all have public code), RAED descriptions fed into the TempEL index, and BLINKout for the NIL comparison. Add two controls that exist specifically to shrink your own claim: **whitening-only** (apply `Σ_R^(-1)` to a frozen BLINK, change nothing else) and **sibling-hard-negatives-only** (BLINK trained with reference-class negatives instead of in-batch negatives). If either of those recovers most of your gain, say so — the paper survives, the framing changes.
+Reproduced, not quoted: BLINK bi-encoder, TempEL's released per-year models, SpEL, TIGER, CYCLE (all have public code), RAED descriptions fed into the TempEL index, and BLINKout for the NIL comparison. Add two controls that exist specifically to shrink your own claim: **whitening-only** (apply $\Sigma_R^{-1}$ to a frozen BLINK, change nothing else) and **sibling-hard-negatives-only** (BLINK trained with reference-class negatives instead of in-batch negatives). If either of those recovers most of your gain, say so — the paper survives, the framing changes.
 
 ---
 
@@ -409,8 +422,8 @@ The minimum set that maps one-to-one onto the three claims in §8.2. Resist addi
 | Full model | Reference point. |
 | − within-class whitening (keep shrinkage and evidence) | Is the factored score the cause, or is it doing nothing? Tests claim 1. |
 | − discriminative selection (relevance-ranked evidence instead) | Selection vs accumulation. Tests claim 3. **The single most informative ablation in the paper.** |
-| − shrinkage (λ = 0, pure evidence estimate) | Does the low-sample estimator matter, or would plain averaging do? Tests claim 2. |
-| Fixed λ vs λ(n_eff) | Is maturation real, or is a constant interpolation enough? |
+| − shrinkage ($\lambda = 0$, pure evidence estimate) | Does the low-sample estimator matter, or would plain averaging do? Tests claim 2. |
+| Fixed $\lambda$ vs $\lambda(n_{\text{eff}})$ | Is maturation real, or is a constant interpolation enough? |
 | Single prototype vs multiple exemplars | The Apple-derived question. Does a set-valued class representation beat a mean? |
 | − routing (always 7a, or always 7b) | Does population-dependent routing beat applying one mechanism everywhere? If not, the paper is simpler and should be rewritten as such. |
 | Oracle reference class | Upper bound on the mechanism. Separates "wrong idea" from "right idea, bad class induction." |
@@ -422,7 +435,7 @@ The minimum set that maps one-to-one onto the three claims in §8.2. Resist addi
 
 ### The killer experiment
 
-**The sibling contrast set.** Build controlled pairs: an emerging entity `e` born at `t`, and an already-known sibling `s ∈ R(e)` — the previous edition of the same event, the parent page a spin-off was extracted from. Take test mentions of both. On this set, the class-level information is held constant by construction; only the residual can decide.
+**The sibling contrast set.** Build controlled pairs: an emerging entity $e$ born at $t$, and an already-known sibling $s \in R(e)$ — the previous edition of the same event, the parent page a spin-off was extracted from. Take test mentions of both. On this set, the class-level information is held constant by construction; only the residual can decide.
 
 Three things must all hold:
 
@@ -440,14 +453,14 @@ If all three hold, you are solving emerging-entity linking. If accuracy improves
 
 **Falsifier 3 — selection equals relevance.** If the "relevance-ranked evidence" ablation matches the full model, claim 3 is dead and what remains is hard-negative mining with extra steps.
 
-**Falsifier 4 — optimal λ is degenerate.** If tuned `λ` goes to 0 (never shrink) or to infinity (never trust evidence), the estimator story collapses into either plain averaging or a pure class-prior model.
+**Falsifier 4 — optimal $\lambda$ is degenerate.** If tuned $\lambda$ goes to $0$ (never shrink) or to infinity (never trust evidence), the estimator story collapses into either plain averaging or a pure class-prior model.
 
-**Falsifier 5 — no evidence exists at ≤ t.** If, under a strictly temporal index, most emerging entities have essentially no pre-t evidence beyond their stub, then nothing can be estimated and the honest conclusion is that a large part of the emerging-entity gap is *irreducible at that timestamp*. This is a real possibility. It is also a genuinely publishable negative result, and a more valuable one than a 2-point gain.
+**Falsifier 5 — no evidence exists at $\le t$.** If, under a strictly temporal index, most emerging entities have essentially no pre-$t$ evidence beyond their stub, then nothing can be estimated and the honest conclusion is that a large part of the emerging-entity gap is *irreducible at that timestamp*. This is a real possibility. It is also a genuinely publishable negative result, and a more valuable one than a 2-point gain.
 
 ### Failure cases to expect and report
 
 - Wrong reference class induced → whitening in the wrong subspace → worse than baseline. Should be visible as a bimodal error distribution.
-- Very small classes → `Σ_R` ill-conditioned. Mitigate by pooling covariance across classes; report the condition number distribution.
+- Very small classes → $\Sigma_R$ ill-conditioned. Mitigate by pooling covariance across classes; report the condition number distribution.
 - Over-shrinkage on entities that genuinely are novel → they get absorbed into the wrong class. This is the mirror image of EDIN-style over-merging and you should measure it.
 - Continual-entity regression from the added class term. Report it every time.
 
@@ -502,7 +515,7 @@ Drop the representation story. Ask only: when is an emerging mention's entity ac
 
 ### Backup 3 — temporally-scoped sibling-contrastive training
 
-A training-time-only intervention: replace in-batch random negatives with the entity's nearest KB(t−1) neighbours, scoped by birth time. Extremely cheap, directly tests claim 3, and works with the small BERT configurations TIGER and CYCLE already use (`bert_uncased_L-8_H-512_A-8`, one epoch, a single A100 for the full experiment grid). Hard-negative mining is well known, so this cannot carry a paper alone — but it is the fastest possible probe of the central hypothesis and it is a required control for the main paper anyway. If it works, you learn that early and cheaply.
+A training-time-only intervention: replace in-batch random negatives with the entity's nearest $\mathrm{KB}(t-1)$ neighbours, scoped by birth time. Extremely cheap, directly tests claim 3, and works with the small BERT configurations TIGER and CYCLE already use (`bert_uncased_L-8_H-512_A-8`, one epoch, a single A100 for the full experiment grid). Hard-negative mining is well known, so this cannot carry a paper alone — but it is the fastest possible probe of the central hypothesis and it is a required control for the main paper anyway. If it works, you learn that early and cheaply.
 
 ---
 
