@@ -16,5 +16,5 @@ Above are the things I understood
 summary is we would use a graph based technique 
 we would use multiple says to get the dataset like RAED TIGER and TempEL
 
-Note: the above things migh be different from emerging-entity-linking-research-ideation.md that ok becaude It was a progress check, not a commitment to a design. any thing wrong in what i said the prof should not be considered further
+Note: the above things might be different from emerging-entity-linking-research-ideation.md that ok becaude It was a progress check, not a commitment to a design. any thing wrong in what i said the prof should not be considered further
 
