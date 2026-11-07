@@ -3,7 +3,7 @@
 Research project on **emerging-entity linking** under temporal drift, evaluated on TempEL. Stage: proposal / design. **No code yet.**
 
 ## Files
-- `PROPOSAL.md`: **current working design**. It covers the motivation, problem statement, the family–residual model, the architecture, and how each TempEL problem maps to a component. Edit this file when the design changes.
+- `PROPOSAL.md`: **current working design**, scoped after the panel review to a training-free family-relative re-ranker on TempEL's released models and encodings. Out-of-scope ideas are in its §9. Edit this file when the design changes.
 - `MYexplaination.md`: what was pitched to the professor. **Not a commitment.**
 - `emerging-entity-linking-research-ideation.md`: long ideation doc. **Not a commitment.** Reuse its evaluation and falsification sections (§13–16).
 - `Papers/`: TempEL (NeurIPS'22), TIGER, RAED, and `TempEL-Dx` (the user's own protocol/dataset design). `new entity.pdf` is a second copy of RAED.
