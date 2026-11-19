@@ -17,6 +17,7 @@ Last time I told the panel about a **prototype + residual** idea and about combi
 | Decide "sibling or continual" from how similar the pages are | **Dropped.** | Not needed: we only reorder inside a family, we don't classify. |
 | Route COVID-type entities to **RAED** | **Future work.** | But we measured the reason for it: COVID entities have 0.0% edition confusion and 37.7% are not retrieved at all. |
 | Use a **graph-based** technique | **Not used.** | Our method uses no graph. TIGER does; we re-ran TIGER. |
+| **Train** the reranker (the mentor's suggestion) | **Planned, not done: not enough time.** | It needs page text, a separate training split and GPU time: about 2–4 weeks part-time (my estimate). We first measured how much room there is (the oracle, below). |
 
 **If the panel asks "where is the residual?"**
 "We tested that idea on paper before running anything. The residual removed the very differences between editions, so it could not separate them. We replaced it with direct evidence: does the year in the page title appear in the text? That is what gives the gain. We kept the record of this decision in `docs/ideas/review-round1.md`."
@@ -250,8 +251,13 @@ Validation and test contain the same entities. Folds make sure a mention is neve
 **Why is the gain on test (+3.6) smaller than on validation (+6.4)?**
 That is what honest testing looks like: validation is where settings were chosen. We report both.
 
-**Why not a cross-encoder?**
-It needs a trained model and a GPU pass over every candidate. It is listed as future work, as an upper bound.
+**Why not a cross-encoder / why didn't you train the reranker?**
+We planned it, but there was not enough time this semester. It needs three things we did not have ready: the text of each candidate page (we only have titles and vectors), top-64 lists for a separate training split, and GPU time (Kaggle allows 30 h a week, 12 h per session). That is about 2–4 weeks part-time (my estimate). So we did the training-free version first, which also measures how much a reranker can gain:
+- original model 17.4% → our rule 21.0% → perfect within-family reorder (oracle) **25.7%** new-entity acc@1 (`data/enc/test2021full.results_d64.json`).
+- Any reranker that only fixes editions, trained or not, is capped at 25.7%. Our rule gets 3.6 of the 8.3 possible points.
+- A trained reranker over all 64 candidates could go beyond 25.7%, because it can also fix errors outside families. No prediction of how much.
+Full plan: §16.
+Say: "A trained reranker is the next step, and it would likely do better. We stayed training-free this semester for time and compute, and because a rule with no training cannot overfit the test set."
 
 **What would make the method fail?**
 No year in the text; titles with no shared template (most page splits); truly new entities like COVID.
@@ -415,4 +421,58 @@ Short answers, grouped by topic. If a question is not here, the honest fallback 
 - **Biggest weakness?** The benchmark's recency artifact: "pick the 2020 edition" ties us on new entities.
 - **Second weakness?** On TIGER's small pool a plain title match beats us.
 - **What would you do with more time?** Other years on the full pool; a retrieval fix for misses that have a sibling in the list (10.5% of recurrent new mentions); route COVID-type entities to a knowledge-adding method; a cross-encoder as an upper bound; training with sibling pages as hard negatives.
+- **Your mentor said a trained reranker would do better. Why not?** Agree: it likely would. We planned it but did not have the time: it needs candidate page text, a training split and GPU time, about 2–4 weeks part-time. The oracle (25.7%) shows how much an edition-only reranker can gain; a trained one over all 64 candidates could also fix other errors. It is next semester's plan, and the test set would need a new pre-registration first, because it was already used once.
 - **What is unfinished?** The hand audit of 100 errors. No reported number depends on it.
+
+---
+
+## 16. Next step: a trained reranker (plan only, NOT done)
+
+This is the plan if we continue next semester. Nothing here was run, and there are no numbers to quote. Times are my estimates, part-time.
+
+**The idea in one line:** keep the frozen bi-encoder for retrieval (top-64), and train a second model that reads the mention and each candidate page **together** and re-scores the 64.
+
+| # | Step | What exactly | Time |
+|---|---|---|---|
+| 0 | **Pre-register** | Write the model, data, metrics and the one test run in a git commit *before* touching test, as with `12fd858`. The 2021 test set was already used once, so this is required. | ½ day |
+| 1 | **Training data** | TempEL's **2019** train and validation mentions, the same year the bi-encoder was trained on. Everything dated on or before the snapshot; no LLM. | 1 day |
+| 2 | **Candidate page text** | Title + first paragraph of each page, from TempEL's entity files: the 2019 snapshot for training, the 2021 snapshot for test. Today we only have titles and vectors. | 2–4 days |
+| 3 | **Candidate lists for training** | Encode the training mentions with the frozen bi-encoder and retrieve their top-64 from the 2019 pool (another 25 GB table). On Kaggle GPU, not the laptop CPU. Siblings appear in these lists naturally, so they act as **hard negatives**. | 3–5 days |
+| 4 | **Model** | A **cross-encoder**: BERT-base reads `[CLS] mention in context [SEP] page title + text [SEP]` (about 256 tokens) and outputs one score. Optional variant: add our year-evidence `w` as an extra input. | 1 day |
+| 5 | **Loss** | For each mention, a softmax over its 64 candidates; the loss is −log(probability of the correct page). If the correct page was not retrieved, insert it during training only. | (part of 4) |
+| 6 | **Training** | Kaggle T4, mixed precision, 1–2 epochs, about 16 candidates per mention per step (always including the siblings). Choose the checkpoint on 2019 validation only. Kaggle limits: 12 h per session, 30 GPU-hours a week. | 2–4 days |
+| 7 | **Test scoring** | Score the 2021 test top-64: 48,215 mentions × 64 = about 3.1 million pairs. Final score = cross-encoder score, or a mix with the bi-encoder score chosen on validation. | 1–2 days |
+| 8 | **Evaluation** | Same as now: new-entity acc@1 (primary), MRR, sibling-confusion, continual non-regression. Rows: frozen, our rule, the trained reranker, reranker + our rule, the oracle (25.7%), plus the controls. Entity bootstrap, permutation test, Holm. acc@64 cannot change, because only the top 64 are reordered. | 3–5 days |
+
+**Total: about 2–4 weeks part-time.**
+
+**What it could add that our rule cannot:** fix errors **outside** families, such as picking the right tournament among several 1984 golf pages. That is why it might pass the 25.7% within-family ceiling. We make no prediction of by how much.
+
+**Risks to say if asked:**
+- It may learn the 2020-edition shortcut (81% of dated new gold pages are 2020 editions), so the recency and snapshot-year controls stay in.
+- One seed on a free GPU, same limit as our TIGER re-run.
+- Page text from a later dump would leak the future. Use only the snapshot's own text.
+
+**One sentence for the panel:** "Next we train a cross-encoder on the 2019 data that re-scores the same top-64. It is pre-registered and judged against our rule, the controls and the 25.7% oracle. It needs about a month, mainly for page text, training lists and GPU time."
+
+### 16.1 The quick version: a small learned reranker (also NOT done)
+
+If a prof asks "could you not train something small right now?", this is how we would do it. It fits in a few hours and needs no GPU, because it uses only numbers we already store.
+
+1. **Pre-register.** A git commit with the features, the model and the single test run, before anything is scored.
+2. **Data.** The 2021 **validation** lists (the same data the rule was tuned on), grouped into the same 5 template folds. Never the test set while building it.
+3. **Features per candidate** (all already stored): the frozen score s; its gap to the top score; the rank; "in a family" (0/1); the year evidence w (0, ½, 1); the vector length ‖g‖²; the family size; whether the page is the umbrella page.
+4. **Model.** Logistic regression, or a small gradient-boosted tree model, giving one score per candidate. The list is sorted by that score.
+5. **Training target.** Correct page = 1, the other 63 = 0. A softmax over the 64 (listwise) or plain 0/1 labels both work.
+6. **Cross-fitting.** Train on 4 folds and score the 5th, so no mention is scored by a model that saw it.
+7. **Selection rule, fixed in advance.** As for the rule: maximise new-entity validation acc@1 while continual acc@1 drops by at most 0.2 points.
+8. **One test run.** Same metrics, same controls, same entity bootstrap and Holm. Report it next to the rule and the 25.7% oracle.
+
+**Time:** about a day to build and check, and minutes to train on the laptop CPU.
+
+**Honest limits:**
+- It sees the same signals as our rule, so it mainly learns a better **mix** of them. It cannot read page text, so it cannot fix errors outside families like the 1984 golf example. Only the cross-encoder in §16 can.
+- It may learn the 2020-edition shortcut. The recency and snapshot-year controls must stay in.
+- Trying several versions and reporting the best on test would be tuning on the test set. That is why steps 1 and 7 are fixed before the run.
+
+**Why we did not do it before the evaluation:** the test set had already been used once; a new result would only be exploratory; and building it would have taken the time needed for the slides and preparation. No prediction of whether it beats 21.0%.
